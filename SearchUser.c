@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>  
+#include "SearchUser.h"
 
 static char* concat(int count, ...)
 {
