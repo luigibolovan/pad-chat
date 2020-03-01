@@ -9,7 +9,6 @@
 #include <errno.h>
 #include <arpa/inet.h>
 
-
 #define SERVER_ADDRESS "127.0.0.1"
 #define SERVER_PORT 9000
 #define DATA_PKG_LENGTH 1024
@@ -47,22 +46,26 @@ int main(){
         printf("%s\n", strerror(errno));
         exit(3);
     }
-    printf("CONNECTED TO PORT:%d\n", remote_addr.sin_port);
+    printf("CONNECTED TO PORT:%d\n", SERVER_PORT);
 
-    printf("ENTER A NUMBER\n");
-    scanf("%d", &inp);
-    sprintf(out, "Client: %d", inp);
-    if(write(socket_fd, out, DATA_PKG_LENGTH) < 0){
-        printf("error at sending\n");
-        exit(7);
+    while(1){
+        printf("ENTER A NUMBER\n");
+        scanf("%d", &inp);
+        sprintf(out, "Client: %d", inp);
+        if(inp == 0){
+            break;
+        }
+        if(write(socket_fd, out, DATA_PKG_LENGTH) < 0){
+            printf("error at sending\n");
+            exit(7);
+        }
+
+        if(read(socket_fd, buffer, DATA_PKG_LENGTH) < 0){
+            printf("error at reading from server");
+            exit(9);
+        }
+        printf("%s",buffer);
     }
-
-    if(read(socket_fd, buffer, DATA_PKG_LENGTH) < 0){
-        printf("error at reading from server");
-        exit(9);
-    }
-    printf("%s",buffer);
-
     free(buffer);
     free(out);
     close(socket_fd);
