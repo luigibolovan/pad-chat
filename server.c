@@ -16,6 +16,29 @@
 #define LISTEN_BACKLOG 10
 #define DATA_PKG_LENGTH 1024
 
+int connection_fds[10];
+int connection_cnt;
+pthread_mutex_t mutex_id;
+int thread_cnt;
+
+void addConnection(int connection_fd){
+    connection_fds[connection_cnt++] = connection_fd;
+}
+
+void removeConnection(int connection_fd){
+    int poz = 0;
+
+    for(int i = 0; i < connection_cnt; i++){
+        if(connection_fds[i] == connection_fd) poz = i;
+    }
+
+    for(int i = poz; i < connection_cnt; i++){
+        connection_fds[i] = connection_fds[i+1];
+    }
+
+    connection_fds[connection_cnt - 1] = 0;
+    connection_cnt--;
+}
 
 void handle_msg(void * arg){
     int size = 0;
@@ -25,13 +48,23 @@ void handle_msg(void * arg){
     printf("Connection file descriptor: %d\n", connection_fd);
     while(1){
         size = read(connection_fd, buffer, DATA_PKG_LENGTH);
+        if (size == 0) break;
         printf("Server has read: %s\n", buffer);
         if(size < 0){
             printf("error when reading from server\n");
         }
         sprintf(out, "FROM SERVER : %s\n", buffer);
-        write(connection_fd, out, DATA_PKG_LENGTH);
+        for(int i = 0; i < connection_cnt; i++){
+            printf("Sending data to: %d\n", connection_fds[i]);
+            write(connection_fds[i], out, DATA_PKG_LENGTH);
+        }
     }
+
+    pthread_mutex_lock(&mutex_id);
+    thread_cnt--;
+    printf("%d active threads\n", thread_cnt);
+    removeConnection(connection_fd);
+    pthread_mutex_unlock(&mutex_id);
 
     free(buffer);
     free(out);
@@ -43,9 +76,7 @@ int main(){
     int connection_fd;
     socklen_t receive_len;
     struct sockaddr_in local_addr, remote_addr;
-    pthread_mutex_t mutex_id;
     pthread_t thread_id;
-    int thread_cnt = 0;
 
     if((socket_fd = socket(PF_INET, SOCK_STREAM, 0)) == -1){
         printf("%s\n", strerror(errno));
@@ -85,14 +116,15 @@ int main(){
         if(pthread_create(&thread_id, NULL, (void *)handle_msg, &connection_fd) != 0){
             printf("Thread creation: %s\n", strerror(errno));
         }
-        
+
         pthread_mutex_lock(&mutex_id);
         thread_cnt++;
+        addConnection(connection_fd);
         printf("%d active threads \n", thread_cnt);
         pthread_mutex_unlock(&mutex_id);
     }
 
     close(socket_fd);
-
+    
     return 0;
 }
