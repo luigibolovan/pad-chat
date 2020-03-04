@@ -11,10 +11,12 @@
 #include <string.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include "../sockio/send.h"
 
 #define SERVER_PORT 9000
 #define LISTEN_BACKLOG 10
-#define DATA_PKG_LENGTH 1024
+#define DATA_PKG_LENGTH 256
+#define ALLOWED_MESSAGE_LENGTH 32678
 
 int             connection_fds[10];
 int             connection_cnt;
@@ -45,20 +47,19 @@ void handle_msg(void * arg){
     char *out           = (char*)calloc(DATA_PKG_LENGTH, sizeof(char));
     char *buffer        = (char*)calloc(DATA_PKG_LENGTH, sizeof(char));
     int connection_fd   = *(int *)arg;
+    char *msg           = (char*)calloc(ALLOWED_MESSAGE_LENGTH, sizeof(char));
+    int no_of_packages  = 0;
 
     printf("Connection file descriptor: %d\n", connection_fd);
     
     while(1){
-        size = read(connection_fd, buffer, DATA_PKG_LENGTH);
-        if (size == 0) break;
-        printf("Server has read: %s\n", buffer);
-        if(size < 0){
-            printf("error when reading from server\n");
-        }
-        sprintf(out, "FROM SERVER : %s\n", buffer);
-        for(int i = 0; i < connection_cnt; i++){
-            printf("Sending data to: %d\n", connection_fds[i]);
-            write(connection_fds[i], out, DATA_PKG_LENGTH);
+        while((size = read(connection_fd, buffer, DATA_PKG_LENGTH)) > 0){
+            sprintf(out, "Client %d: %s\n\n", connection_fd, buffer);
+            for(int i = 0; i < connection_cnt; i++){
+                printf("Sending data to: %d\n", connection_fds[i]);
+              // write(connection_fds[i], buffer, DATA_PKG_LENGTH);
+                SockIO_send(connection_fds[i], out);
+            }
         }
     }
 

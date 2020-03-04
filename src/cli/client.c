@@ -10,16 +10,18 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 #include <ctype.h>
+#include "../sockio/send.h"
 
-#define DATA_PKG_LENGTH 1024
+#define PKG_SIZE                256
+#define ALLOWED_DATA_LENGTH     32678
 
 void listen_server(void *arg){
     int read_size   = 0;
     int socket_fd   = *(int *) arg;
-    char *buffer    = (char*)calloc(DATA_PKG_LENGTH, sizeof(char));
-    
+    char *buffer    = (char*)calloc(PKG_SIZE, sizeof(char));
+
     while(1){
-        while((read_size = read(socket_fd, buffer, DATA_PKG_LENGTH)) > 0)
+        while((read_size = read(socket_fd, buffer, PKG_SIZE)) > 0)
             printf("%s",buffer);
     }
 
@@ -33,12 +35,10 @@ int main(int argc, char **argv){
     struct sockaddr_in  local_addr, remote_addr;
     socklen_t           receive_len;
     int                 connection_fd;
-    int                 inp;
     pthread_t           thread_id;
     int                 port;
-    char *buffer        = (char*)calloc(DATA_PKG_LENGTH, sizeof(char));
-    char *out           = (char*)calloc(DATA_PKG_LENGTH, sizeof(char));
-    char *server_addr   = (char*)calloc(16,sizeof(char));
+    char *server_addr   = (char*)calloc(16, sizeof(char));
+    char *inp           = (char*)calloc(ALLOWED_DATA_LENGTH, sizeof(char));
     
 
     strcpy(server_addr, argv[1]);
@@ -72,22 +72,18 @@ int main(int argc, char **argv){
 
     if(pthread_create(&thread_id, NULL, (void *)listen_server, &socket_fd) != 0){
         printf("Thread creation error: %s\n", strerror(errno));
-    } 
+    }
 
     while(1){
-        printf("ENTER A NUMBER:");
-        scanf("%d", &inp);
-        sprintf(out, "Client: %d", inp);
-        if(inp == 0){
+        scanf("%[^\n]s", inp);
+        while((getchar()) != '\n');
+        if(strcmp(inp, "exit") == 0){
             break;
         }
-        if(write(socket_fd, out, DATA_PKG_LENGTH) < 0){
-            printf("error at sending\n");
-            exit(7);
-        }
+        SockIO_send(socket_fd, inp);
+        // write(socket_fd, inp, PKG_SIZE);
     }
-    free(buffer);
-    free(out);
+
     free(server_addr);
     close(socket_fd);
 }

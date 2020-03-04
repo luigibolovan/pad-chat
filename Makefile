@@ -3,21 +3,13 @@ all: server client
 
 server:
 	@echo "Compiling server..."
-	@gcc -o server src/srv/server.c -lpthread
+	@gcc -o server src/srv/server.c src/sockio/send.c -lpthread
 	@echo "Done"
 
 client:
 	@echo "Compiling client..."
-	@gcc -o client src/cli/client.c -lpthread
+	@gcc -o client src/cli/client.c src/sockio/send.c -lpthread
 	@echo "Done"
-
-run_server:
-	@echo "Starting server..."
-	@./server
-
-run_client:
-	@echo "Starting client..."
-	@./client
 
 clean:	
 	@echo "Housekeeping..."
