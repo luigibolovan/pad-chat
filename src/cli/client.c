@@ -13,11 +13,27 @@
 
 #define DATA_PKG_LENGTH 1024
 
+char name[32];
+
+void str_ovrewrite_stdout(){
+  printf("%s", "> ");
+  fflush(stdout);
+}
+
+void trim_newline(char *array, int length){
+  for(int i = 0; i < length; i++){
+    if(array[i] == '\n'){
+      array[i] = '\0';
+      break;
+    }
+  }
+}
+
 void listen_server(void *arg){
     int read_size   = 0;
     int socket_fd   = *(int *) arg;
     char *buffer    = (char*)calloc(DATA_PKG_LENGTH, sizeof(char));
-    
+
     while(1){
         while((read_size = read(socket_fd, buffer, DATA_PKG_LENGTH)) > 0)
             printf("%s",buffer);
@@ -28,18 +44,22 @@ void listen_server(void *arg){
 
 
 int main(int argc, char **argv){
-    
+
     int                 socket_fd;
     struct sockaddr_in  local_addr, remote_addr;
     socklen_t           receive_len;
     int                 connection_fd;
-    int                 inp;
     pthread_t           thread_id;
     int                 port;
     char *buffer        = (char*)calloc(DATA_PKG_LENGTH, sizeof(char));
     char *out           = (char*)calloc(DATA_PKG_LENGTH, sizeof(char));
     char *server_addr   = (char*)calloc(16,sizeof(char));
-    
+    int i = 1;
+
+    if(argc != 4){
+      printf("Usage: %s <ip> <port> <name>", argv[0]);
+      exit(1);
+    }
 
     strcpy(server_addr, argv[1]);
     printf("%s\n", server_addr);
@@ -72,15 +92,22 @@ int main(int argc, char **argv){
 
     if(pthread_create(&thread_id, NULL, (void *)listen_server, &socket_fd) != 0){
         printf("Thread creation error: %s\n", strerror(errno));
-    } 
+    }
 
     while(1){
-        printf("ENTER A NUMBER:");
-        scanf("%d", &inp);
-        sprintf(out, "Client: %d", inp);
-        if(inp == 0){
+        //str_ovrewrite_stdout();
+        //scanf("%d", &inp);
+
+        char inp[DATA_PKG_LENGTH] = {};
+
+        fgets(inp, DATA_PKG_LENGTH, stdin);
+        trim_newline(inp, DATA_PKG_LENGTH);
+
+        sprintf(out, "%s: %s", argv[3],inp);
+        if(inp == NULL){
             break;
         }
+
         if(write(socket_fd, out, DATA_PKG_LENGTH) < 0){
             printf("error at sending\n");
             exit(7);

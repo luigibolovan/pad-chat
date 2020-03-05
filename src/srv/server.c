@@ -15,11 +15,27 @@
 #define SERVER_PORT 9000
 #define LISTEN_BACKLOG 10
 #define DATA_PKG_LENGTH 1024
+#define MAX_CLIENTS 50
+
+typedef struct{
+  struct sockaddr_in address;
+  int sockfd;
+  int uid;
+  char name[32];
+}client_t;
+
+client_t *clients[MAX_CLIENTS];
 
 int             connection_fds[10];
 int             connection_cnt;
 pthread_mutex_t mutex_id;
 int             thread_cnt;
+
+/*
+void str_ovrewrite_stdout(){
+  printf("\r%s", "> ");
+  fflush(stdout);
+}*/
 
 void addConnection(int connection_fd){
     connection_fds[connection_cnt++] = connection_fd;
@@ -47,7 +63,7 @@ void handle_msg(void * arg){
     int connection_fd   = *(int *)arg;
 
     printf("Connection file descriptor: %d\n", connection_fd);
-    
+
     while(1){
         size = read(connection_fd, buffer, DATA_PKG_LENGTH);
         if (size == 0) break;
@@ -55,10 +71,14 @@ void handle_msg(void * arg){
         if(size < 0){
             printf("error when reading from server\n");
         }
-        sprintf(out, "FROM SERVER : %s\n", buffer);
+        sprintf(out, "%s\n", buffer);
+
+        /*Sending data to all clients except sender*/
         for(int i = 0; i < connection_cnt; i++){
-            printf("Sending data to: %d\n", connection_fds[i]);
-            write(connection_fds[i], out, DATA_PKG_LENGTH);
+          if(connection_fd != connection_fds[i]){
+              printf("Sending data to: %d\n", connection_fds[i]);
+              write(connection_fds[i], out, DATA_PKG_LENGTH);
+              }
         }
     }
 
@@ -125,9 +145,11 @@ int main(){
         addConnection(connection_fd);
         printf("%d active threads \n", thread_cnt);
         pthread_mutex_unlock(&mutex_id);
+
+        sleep(1);
     }
 
     close(socket_fd);
-    
+
     return 0;
 }
