@@ -88,7 +88,7 @@ int main(int argc, char **argv){
     }
     printf("CONNECTED TO %s:%d\n", strServerAddress, iPort);
 
-    if(pthread_create(&threadID, NULL, (void *)handleServerConnecttion, &iSocketFD) != 0){
+    if(pthread_create(&threadID, NULL, (void *)handleServerConnection, &iSocketFD) != 0){
         printf("Thread: %s\n", strerror(errno));
     }
 

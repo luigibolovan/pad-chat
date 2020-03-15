@@ -120,7 +120,7 @@ void handleConnections(void * pvArg){
                     break;
                 }
 
-                if(validateUser(strUsername, strPassword, pfUsersFile) == 1){
+                if(ValidateUser(strUsername, strPassword, pfUsersFile) == 1){
                     strcpy(sastrConnectedUsers[siConnectionCounter], strUsername);
                     printf("%s\n",sastrConnectedUsers[siConnectionCounter]);
                     boIsAuthenticated = true;
