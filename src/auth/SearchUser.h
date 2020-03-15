@@ -2,6 +2,6 @@
 #ifndef _SearchUser_H
 #define _SearchUser_H
 
-int ValidateUser(char *userName, char *password, FILE *file);
+int validateUser(char *userName, char *password, FILE *file);
 
 #endif

@@ -11,79 +11,121 @@
 #include <pthread.h>
 #include <ctype.h>
 #include "../sockio/send.h"
+#include <stdbool.h>
 
 #define PKG_SIZE                256
 #define ALLOWED_DATA_LENGTH     32678
+#define SERVER_IP_SIZE          16
+#define PASSWORD_MAX_SIZE       16
 
-void listen_server(void *arg){
-    int read_size   = 0;
-    int socket_fd   = *(int *) arg;
-    char *buffer    = (char*)calloc(PKG_SIZE, sizeof(char));
+/**
+ * Handles the server connection by printing what the server sends back to the clients.
+ */
+void handleServerConnecttion(void *pvArg){
+    int iSocketFD       = *(int *) pvArg;
+    int iNoOfPackages   = 0;
+    char *strBuffer     = (char*)calloc(PKG_SIZE, sizeof(char));
 
     while(1){
-        while((read_size = read(socket_fd, buffer, PKG_SIZE)) > 0)
-            printf("%s",buffer);
-    }
+        if(read(iSocketFD, &iNoOfPackages, 1) < 0){
+            printf("Error\n");
+            exit(EXIT_FAILURE);
+        }
+        
+        char *strReceivedMsg = (char*)calloc(iNoOfPackages * PKG_SIZE, sizeof(char));
+        while((read(iSocketFD, strBuffer, PKG_SIZE)) > 0){
+            strcat(strReceivedMsg, strBuffer);
+            iNoOfPackages--;
 
-    free(buffer);
+            if(iNoOfPackages == 0){
+                printf("%s", strReceivedMsg);
+                break;                
+            }
+        }
+        free(strReceivedMsg);
+    }
 }
 
-
+/**
+ * ARGV[1] = Server IP;
+ * ARGV[2] = Server PORT;
+ **/
 int main(int argc, char **argv){
-    
-    int                 socket_fd;
-    struct sockaddr_in  local_addr, remote_addr;
-    socklen_t           receive_len;
-    int                 connection_fd;
-    pthread_t           thread_id;
-    int                 port;
-    char *server_addr   = (char*)calloc(16, sizeof(char));
-    char *inp           = (char*)calloc(ALLOWED_DATA_LENGTH, sizeof(char));
-    
+                     
+    int                 iSocketFD;
+    struct sockaddr_in  localAddr, remoteAddr;
+    pthread_t           threadID;
+    int                 iPort;
 
-    strcpy(server_addr, argv[1]);
-    printf("%s\n", server_addr);
-    port = atoi(argv[2]);
+    bool  boIsAuthenticated  = false;
+    char *strServerAddress   = (char*)calloc(SERVER_IP_SIZE, sizeof(char));
+    
+    strcpy(strServerAddress, argv[1]);
+    iPort = atoi(argv[2]);
 
-    if((socket_fd = socket(PF_INET, SOCK_STREAM, 0)) == -1){
+    if((iSocketFD = socket(PF_INET, SOCK_STREAM, 0)) == -1){
         printf("%s\n", strerror(errno));
-        exit(1);
+        exit(EXIT_FAILURE);
     }
 
-    local_addr.sin_addr.s_addr  = htonl(INADDR_ANY);
-    local_addr.sin_port         = 0;
-    local_addr.sin_family       = AF_INET;
+    localAddr.sin_addr.s_addr  = htonl(INADDR_ANY);
+    localAddr.sin_port         = 0;
+    localAddr.sin_family       = AF_INET;
 
-    if(bind(socket_fd, (struct sockaddr *)&local_addr, sizeof(local_addr)) == -1){
+    if(bind(iSocketFD, (struct sockaddr *)&localAddr, sizeof(localAddr)) == -1){
         printf("%s\n", strerror(errno));
-        exit(2);
+        exit(EXIT_FAILURE);
     }
 
-    remote_addr.sin_addr.s_addr = inet_addr(server_addr);
-    remote_addr.sin_port        = htons(port);
-    remote_addr.sin_family      = AF_INET;
+    remoteAddr.sin_addr.s_addr = inet_addr(strServerAddress);
+    remoteAddr.sin_port        = htons(iPort);
+    remoteAddr.sin_family      = AF_INET;
 
-    if(connect(socket_fd, (struct sockaddr *)&remote_addr, sizeof(remote_addr)) == -1){
+    if(connect(iSocketFD, (struct sockaddr *)&remoteAddr, sizeof(remoteAddr)) == -1){
         printf("CONNECTION\n");
         printf("%s\n", strerror(errno));
-        exit(3);
+        exit(EXIT_FAILURE);
     }
-    printf("CONNECTED TO PORT:%d\n", port);
+    printf("CONNECTED TO %s:%d\n", strServerAddress, iPort);
 
-    if(pthread_create(&thread_id, NULL, (void *)listen_server, &socket_fd) != 0){
-        printf("Thread creation error: %s\n", strerror(errno));
+    if(pthread_create(&threadID, NULL, (void *)handleServerConnecttion, &iSocketFD) != 0){
+        printf("Thread: %s\n", strerror(errno));
     }
 
     while(1){
-        scanf("%[^\n]s", inp);
+
+        if(!boIsAuthenticated){
+            char *strUsername       = (char*)calloc(PKG_SIZE, sizeof(char));
+            char *strPassword       = (char*)calloc(PASSWORD_MAX_SIZE, sizeof(char));      
+            
+            /*get the username and passwords from users*/
+            printf("Username:"); scanf("%[^\n]s", strUsername);
+            while((getchar()) != '\n');
+            printf("Password:"); scanf("%[^\n]s", strPassword);
+            while((getchar()) != '\n');
+            
+            /*send the username and password to the server*/
+            SockIO_send(iSocketFD, strUsername);
+            SockIO_send(iSocketFD, strPassword);
+            boIsAuthenticated = true;
+
+            free(strUsername);
+            free(strPassword);
+        }
+        /*get the message from the user*/
+        char *strInput           = (char*)calloc(ALLOWED_DATA_LENGTH, sizeof(char));
+        scanf("%[^\n]s", strInput);
         while((getchar()) != '\n');
-        if(strcmp(inp, "exit") == 0){
+
+        /*send the message to the server*/
+        SockIO_send(iSocketFD, strInput);
+        if(strcmp(strInput, "/exit") == 0){
+            printf("Goodbye!\n");
             break;
         }
-        SockIO_send(socket_fd, inp);
-        // write(socket_fd, inp, PKG_SIZE);
+        free(strInput);
     }
 
-    free(server_addr);
-    close(socket_fd);
+    free(strServerAddress);
+    close(iSocketFD);
 }

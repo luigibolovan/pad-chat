@@ -30,25 +30,23 @@ static char* concat(int count, ...)
     return merged;
 }
 
-int ValidateUser(char *userName, char *password, FILE *file)
+int validateUser(char *userName, char *password, FILE *file)
 {
-    char *line = NULL;
+    char *line = (char*)calloc(512, sizeof(char));
     size_t len = 0;
-    ssize_t read;
+    int read;
     char *userData = concat(4, userName, " ", password, "\n");
- 
+
     if(file == NULL)
     {
         perror("Failed to open the file");
         exit(EXIT_FAILURE);
     }
-
     while ((read = getline(&line, &len, file)) != -1)
     {
-
-        printf("%d\n", strcmp(line, userData));
         if(strcmp(line, userData) == 0)
         {
+            printf("Valid user\n");
             return 1;
         }
     }
@@ -61,24 +59,3 @@ int ValidateUser(char *userName, char *password, FILE *file)
     return 0;
 }
 
-
-
-int main(int argc, char *argv[])
-{
-       FILE *fd;
-       char *userName = "IonutBorozan";
-       char *userPassword = "Boropass";
-       int result = 404;
-     
-
-       fd = fopen("/home/bogdan/Desktop/fileTest.txt", "r");
-
-       result = ValidateUser(userName, userPassword, fd);
-
-       if(result == 404)
-            printf("Fuck!!!\n");
-        else if(result == 1)
-            printf("The user is Ok\n");
-        else if(result == 0)
-            printf("User don't exist\n");
-}
