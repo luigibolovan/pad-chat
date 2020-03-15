@@ -21,7 +21,7 @@
 /**
  * Handles the server connection by printing what the server sends back to the clients.
  */
-void handleServerConnecttion(void *pvArg){
+void handleServerConnection(void *pvArg){
     int iSocketFD       = *(int *) pvArg;
     int iNoOfPackages   = 0;
     char *strBuffer     = (char*)calloc(PKG_SIZE, sizeof(char));

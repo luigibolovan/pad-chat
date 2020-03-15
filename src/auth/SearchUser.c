@@ -30,7 +30,7 @@ static char* concat(int count, ...)
     return merged;
 }
 
-int validateUser(char *userName, char *password, FILE *file)
+int ValidateUser(char *userName, char *password, FILE *file)
 {
     char *line = (char*)calloc(512, sizeof(char));
     size_t len = 0;
