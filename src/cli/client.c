@@ -12,17 +12,32 @@
 #include <ctype.h>
 #include "../sockio/send.h"
 #include <stdbool.h>
+#include <signal.h>
 
 #define PKG_SIZE                256
 #define ALLOWED_DATA_LENGTH     32678
 #define SERVER_IP_SIZE          16
 #define PASSWORD_MAX_SIZE       16
 
+static int iSocketFD;
+
+/**
+ * Handler for ctrl+c
+ */
+void handleSIGINT(int signal){
+    char *strExit = (char*)calloc(PKG_SIZE, sizeof(char));
+    strcpy(strExit, "/exit");
+    SockIO_send(iSocketFD, strExit);
+    printf("Goodbye!\n");
+    free(strExit);
+
+    exit(EXIT_SUCCESS);
+}
+
 /**
  * Handles the server connection by printing what the server sends back to the clients.
  */
 void handleServerConnection(void *pvArg){
-    int iSocketFD       = *(int *) pvArg;
     int iNoOfPackages   = 0;
     char *strBuffer     = (char*)calloc(PKG_SIZE, sizeof(char));
 
@@ -38,7 +53,13 @@ void handleServerConnection(void *pvArg){
             iNoOfPackages--;
 
             if(iNoOfPackages == 0){
-                printf("%s", strReceivedMsg);
+                if(strcmp(strReceivedMsg, "/invalid") == 0){
+                    printf("Username or password incorrect\n");
+                    exit(EXIT_FAILURE);
+                }
+                else{
+                    printf("%s", strReceivedMsg);
+                }
                 break;                
             }
         }
@@ -57,16 +78,24 @@ int main(int argc, char **argv){
         exit(EXIT_FAILURE);
     }
                      
-    int                 iSocketFD;
     struct sockaddr_in  localAddr, remoteAddr;
     pthread_t           threadID;
     int                 iPort;
+    struct sigaction    sigInterrupt;
 
     bool  boIsAuthenticated  = false;
     char *strServerAddress   = (char*)calloc(SERVER_IP_SIZE, sizeof(char));
     
     strcpy(strServerAddress, argv[1]);
     iPort = atoi(argv[2]);
+
+    sigInterrupt.sa_handler = handleSIGINT;
+    sigInterrupt.sa_flags   = 0;
+
+    if(sigaction(SIGINT, &sigInterrupt, NULL) == -1){
+        printf("Error - sigint could not be handled\n");
+        exit(EXIT_FAILURE);
+    }
 
     if((iSocketFD = socket(PF_INET, SOCK_STREAM, 0)) == -1){
         printf("%s\n", strerror(errno));

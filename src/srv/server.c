@@ -46,8 +46,10 @@ static void removeConnection(int connection_fd){
     }
     for(int i = poz; i < siConnectionCounter; i++){
         saiConnectionFds[i] = saiConnectionFds[i+1];
+        strcpy(sastrConnectedUsers[i], sastrConnectedUsers[i + 1]);
     }
     saiConnectionFds[siConnectionCounter - 1] = 0;
+    memset(sastrConnectedUsers[siConnectionCounter], 0, PKG_SIZE);
     siConnectionCounter--;
 }
 
@@ -132,7 +134,7 @@ void handleConnections(void * pvArg){
                 }
                 else{
                     printf("Invalid user - username or password are incorrect\n");
-                    strcpy(strBuffer,"Username or password are incorrect\n");
+                    strcpy(strBuffer,"/invalid");
                     SockIO_send(iConnectionFD, strBuffer);
                     boUserIsInvalid = true;
                     break;
@@ -192,6 +194,7 @@ void handleConnections(void * pvArg){
     fclose(pfUsersFile);
     printf("%d active threads\n", iThreadCounter);
     removeConnection(iConnectionFD);
+
     pthread_mutex_unlock(&sMutexID);
 
     close(iConnectionFD);
