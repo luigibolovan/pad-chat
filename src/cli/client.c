@@ -51,6 +51,11 @@ void handleServerConnection(void *pvArg){
  * ARGV[2] = Server PORT;
  **/
 int main(int argc, char **argv){
+
+    if(argc != 3){
+        printf("Invalid input. Use: ./client <server ip address> <port>\n");
+        exit(EXIT_FAILURE);
+    }
                      
     int                 iSocketFD;
     struct sockaddr_in  localAddr, remoteAddr;
