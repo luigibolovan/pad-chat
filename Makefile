@@ -8,7 +8,7 @@ server:
 
 client:
 	@echo "Compiling client..."
-	@gcc -o client src/cli/client.c src/sockio/send.c -lpthread
+	@gcc -o client src/cli/client.c src/sockio/send.c -lpthread -lncurses
 	@echo "Done"
 
 clean:	

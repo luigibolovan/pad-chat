@@ -15,6 +15,7 @@
 #include "../auth/SearchUser.h"
 #include <stdbool.h>
 
+
 #define SERVER_PORT 9000
 #define LISTEN_BACKLOG 10
 #define PKG_SIZE 256
@@ -166,10 +167,8 @@ void handleConnections(void * pvArg){
 
                     /*send the response to the other clients*/
                     for(int i = 0; i < siConnectionCounter; i++){
-                        if(saiConnectionFds[i] != iConnectionFD){
-                            printf("Sending data to: %d\n", saiConnectionFds[i]);
-                            SockIO_send(saiConnectionFds[i], strResponse);
-                        }
+                        printf("Sending data to: %d\n", saiConnectionFds[i]);
+                        SockIO_send(saiConnectionFds[i], strResponse);
                     }
                     break; //break after sending the message because there are no more packages
                 }
